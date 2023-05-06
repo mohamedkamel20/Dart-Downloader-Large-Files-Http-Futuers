@@ -31,7 +31,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
     // DownloadTask('https://www.example.com/file3.mp3', 'file3.mp3', 0, 0),
   ];
 
-  DownloadModel? downloadModel;
+  // DownloadModel? downloadModel;
   static String getFileSizeString({required int bytes, int decimals = 0}) {
     const suffixes = ["b", "kb", "mb", "gb", "tb"];
     if (bytes == 0) return '0${suffixes[0]}';
@@ -100,7 +100,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
                     // await _downloadManager!.start();
 
                     await MultiRequestsHttp().start();
-
+                    ['https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3'];
                     // debugPrint('doSomething() executed in ${stopwatch.elapsed}');
                     // final stopwatchh = Stopwatch()..start();
                     // debugPrint('doSomething() executed in ${stopwatchh.elapsed}');
