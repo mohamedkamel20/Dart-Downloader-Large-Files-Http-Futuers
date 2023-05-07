@@ -1,76 +1,49 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-// class DownloadModel {
-//   String url;
-//   String filename;
-//   String filePath;
-//   List<String> urls;
-//   int startByte;
-//   int endByte;
-//   int downloadedBytes = 0;
-//   bool isPaused = false;
-//   int totalsize;
-//   bool isResumed = false;
-//   bool isDownloadeing = false;
-//   int? downloadPercentage;
-//   // DownloadStatus status;
+class DownloadModel {
+  String? url;
+  List<String>? urlss;
 
-//   DownloadModel(
-//     this.url,
-//     this.filename,
-//     this.urls,
-//     this.filePath,
-//     this.startByte,
-//     this.endByte,
-//     this.totalsize,
-//   );
-//   Future<void> save() async {
-//     final prefs = await SharedPreferences.getInstance();
+  File? savePath;
+  int downloadedBytes;
+  double totalBytes;
+  bool? isPaused;
+  bool? isReasumed;
+  DownloadStatus status;
 
-//     prefs.setInt(
-//       'downloadedBytes',
-//       downloadedBytes,
-//     );
-//     prefs.setInt('totalsize', totalsize);
-//   }
+  DownloadModel({
+    this.url,
+    this.urlss,
+    this.savePath,
+    this.downloadedBytes = 0,
+    this.totalBytes = 0,
+    this.isPaused = false,
+    this.isReasumed = false,
+    this.status = DownloadStatus.started,
+  });
+}
 
-//   Future<int?> getDataa(String name) async {
-//     SharedPreferences prefs = await SharedPreferences.getInstance();
-//     return prefs.getInt(name);
-//   }
-// }
+enum DownloadStatus { started, pasue, resume, downloading, completed }
 
 class MultiRequestsHttp {
+  DownloadStatus status = DownloadStatus.started;
+  bool isPause = false;
   // final List<DownloadModel> _tasks;
 
   // MultiRequestsHttp(this._tasks);
 
-  Future<void> start() async {
-    // List<String>? listUrls;
-    // for (int i = 1; i < 4; i++) {
-    List<String> listUrls = [
-      'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3'
-          'https://flutter-interivew-afasdfa.b-cdn.net/32_2.mp3'
-    ];
-
-    // for (var task in _tasks) {
-    // task.urls.add(listUrls);
-    // }
-    // }
-    // Future.wait(
-    downloadFiles(listUrls);
-
-    // );
+  Future<void> start(DownloadModel downloadModel) async {
+    await futureDownloadFiles(downloadModel.urlss!);
   }
 
-  Future<void> downloadFiles(List<String> urls) async {
+  Future<void> futureDownloadFiles(List<String> urls) async {
     final List<Future<void>> futures = [];
-    final List<Future<void>> getLentgth = [];
+
     final dir = Platform.isAndroid
         ? '/sdcard/download'
         : (await getApplicationDocumentsDirectory()).path;
@@ -79,9 +52,10 @@ class MultiRequestsHttp {
       final url = urls[i];
       final fileName = _getFileNameFromUrl(url);
       final file = File('$dir/$fileName');
+
       debugPrint(
-          'content Length: ${_getContentLength(url).then((value) => debugPrint('value of content length: $value'))}}');
-      // double totlaSize = await _getContentLength(urls);
+          'content Length: ${_getContentLength(url).then((value) => debugPrint('value of content length of $i: $value'))}}');
+
       // Check if the file exists and is complete
       if (await file.exists() &&
           await _isFileComplete(file.path, _getContentLength(url))) {
@@ -90,23 +64,111 @@ class MultiRequestsHttp {
       }
 
       // File doesn't exist or is not complete, download it
-      final getFuturesLentgth = _getContentLength(url);
-      final future = _downloadFiles(url, file, i, false);
+      DownloadModel task = DownloadModel(
+        url: url,
+        savePath: file,
+      );
+
+      final future = _ddownloadFile(task);
       futures.add(future);
-      getLentgth.add(getFuturesLentgth);
     }
 
     // Wait for all downloads to complete
     await Future.wait(futures);
-    await Future.wait(getLentgth);
+    // await Future.wait(getLentgth);
     debugPrint('Future length: ${futures.length}');
     debugPrint('Future finish');
   }
 
-  Future<void> _downloadFiles(
-      String url, File file, int index, bool isDownloadPasued) async {
+  Future<File> _ddownloadFile(DownloadModel downloadModel) async {
+    final httpClient = HttpClient();
+    final completer = Completer<void>();
+    while (downloadModel.isPaused == true) {
+      // if (downloadModel.isPaused  == true) {
+      await Future.delayed(const Duration(milliseconds: 30));
+
+      downloadModel.savePath!.deleteSync();
+      completer.completeError('Download paused.');
+      debugPrint('${downloadModel.savePath} downloaded pasued.');
+      //   continue;
+    }
+    // final completer = Completer<void>();
+
+    try {
+      final request = await httpClient.getUrl(Uri.parse(downloadModel.url!));
+      final response = await request.close();
+      final startByte = await downloadModel.savePath!.exists()
+          ? downloadModel.savePath!.lengthSync()
+          : 0;
+      if (startByte > 0) {
+        request.headers.set('range', 'bytes=$startByte-');
+      }
+
+      final bytes = await consolidateHttpClientResponseBytes(response);
+
+      await downloadModel.savePath!.writeAsBytes(bytes);
+      debugPrint('downloaded file path = ${downloadModel.savePath!.path}');
+
+      return downloadModel.savePath!;
+    } catch (error) {
+      debugPrint(' downloading error = $error');
+      return File('');
+    }
+  }
+
+  Future<double> _getContentLength(String url) async {
+    int contentLength = 0;
+    // for (var url in urls) {
+    final request = await HttpClient().getUrl(Uri.parse(url));
+    final response = await request.close();
+    contentLength = response.contentLength + contentLength;
+    try {
+      if (response.statusCode != 200) {
+        throw Exception('Failed to get content length for $url');
+      }
+
+      if (contentLength == 0) {
+        throw Exception('Failed to get content length for $url');
+      }
+
+      return double.parse(contentLength.toString());
+    } catch (e) {
+      debugPrint('error: $e');
+      return 0;
+    }
+  }
+
+  String _getFileNameFromUrl(String url) {
+    Uri uri = Uri.parse(url);
+    String path = uri.path;
+    return path.substring(path.lastIndexOf('/') + 1);
+  }
+
+  Future<bool> _isFileComplete(String path, Future<double> expectedSize) async {
+    final file = File(path);
+
+    if (!file.existsSync() || file.lengthSync() != await expectedSize) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool pauseDownload(DownloadModel downloadModel) {
+    return downloadModel.isPaused = true;
+  }
+
+  bool reasumeDownload(DownloadModel downloadModel) {
+    return downloadModel.isPaused = false;
+  }
+
+  Future<void> _downloadFiles(String url, File file, int index,
+      double totalFileSize, bool isDownloadPasued) async {
     final startByte = await file.exists() ? file.lengthSync() : 0;
     final request = await HttpClient().getUrl(Uri.parse(url));
+
+    // request.headers
+    //     .set('range', 'bytes=$startByte-${totalFileSize.toInt() - 1}');
 
     if (startByte > 0) {
       request.headers.set('range', 'bytes=$startByte-');
@@ -119,6 +181,8 @@ class MultiRequestsHttp {
     debugPrint("pathh: ${file.path}");
     if (response.statusCode == HttpStatus.partialContent) {
       // Download is resuming from where it left off
+      request.headers
+          .set('range', 'bytes=$startByte-${totalFileSize.toInt() - 1}');
     } else if (response.statusCode == HttpStatus.ok) {
       // New download
       await file.create(recursive: true);
@@ -149,50 +213,10 @@ class MultiRequestsHttp {
       file.deleteSync();
       completer.completeError(error);
     });
-
-    await completer.future;
-
     debugPrint('File $index downloaded successfully');
+
+    completer.future;
   }
-
-  Future<double> _getContentLength(String url) async {
-    int contentLength = 0;
-    // for (var url in urls) {
-    final request = await HttpClient().getUrl(Uri.parse(url));
-    final response = await request.close();
-    contentLength = response.contentLength + contentLength;
-    try {
-      if (response.statusCode != 200) {
-        throw Exception('Failed to get content length for $url');
-      }
-
-      if (contentLength == 0) {
-        throw Exception('Failed to get content length for $url');
-      }
-      // }
-      return double.parse(contentLength.toString());
-    } catch (e) {
-      debugPrint('error: $e');
-      return 0;
-    }
-  }
-
-  String _getFileNameFromUrl(String url) {
-    Uri uri = Uri.parse(url);
-    String path = uri.path;
-    return path.substring(path.lastIndexOf('/') + 1);
-  }
-
-  Future<bool> _isFileComplete(String path, Future<double> expectedSize) async {
-    final file = File(path);
-
-    if (!file.existsSync() || file.lengthSync() != await expectedSize) {
-      return false;
-    }
-
-    return true;
-  }
-}
 // Future<void> start(List<String> urls) async {
 //     double totalSize = await _getContentLength(urls);
 //     print('Total size: $totalSize');
@@ -219,4 +243,4 @@ class MultiRequestsHttp {
 //     }
 
 //     print('All files downloaded completely!');
-//   }
+}

@@ -1,13 +1,9 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/handle_network.dart';
 import '../data/multi_requests.dart';
-import '../data/new_handler.dart';
-import '../data/pool_http.dart';
+// import '../data/pool_http.dart';
 
 class DownloadScreen extends StatefulWidget {
   const DownloadScreen({super.key});
@@ -17,20 +13,27 @@ class DownloadScreen extends StatefulWidget {
 }
 
 class _DownloadScreenState extends State<DownloadScreen> {
-  DownloadManager? _downloadManager;
-  final List<DownloadTaskk> _tasks = [
-    DownloadTaskk(
+  // DownloadManager? _downloadManager;
+  // final List<DownloadTaskk> _tasks = [
+  //   DownloadTaskk(
+  //     'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
+  //     'My file 8.mp3',
+  //     0,
+  //     0,
+  //     0,
+  //   ),
+  //   // DownloadTask('https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
+  //   //     'file6.mp3', 0, 0),
+  //   // DownloadTask('https://www.example.com/file3.mp3', 'file3.mp3', 0, 0),
+  // ];
+  DownloadModel downloadmodel = DownloadModel(
+    urlss: [
       'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
-      'My file 8.mp3',
-      0,
-      0,
-      0,
-    ),
-    // DownloadTask('https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
-    //     'file6.mp3', 0, 0),
-    // DownloadTask('https://www.example.com/file3.mp3', 'file3.mp3', 0, 0),
-  ];
-
+      'https://flutter-interivew-afasdfa.b-cdn.net/32_2.mp3',
+      // 'https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
+      // 'https://flutter-interivew-afasdfa.b-cdn.net/32_5.mp3'
+    ],
+  );
   // DownloadModel? downloadModel;
   static String getFileSizeString({required int bytes, int decimals = 0}) {
     const suffixes = ["b", "kb", "mb", "gb", "tb"];
@@ -39,15 +42,15 @@ class _DownloadScreenState extends State<DownloadScreen> {
     return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
 
-  DownloadTaskk? taskModel;
+  // DownloadTaskk? taskModel;
   int? totalsize;
   MultiRequestsHttp? handleRequests;
 
   @override
   void initState() {
-    _downloadManager = DownloadManager(
-      _tasks,
-    );
+    // _downloadManager = DownloadManager(
+    //   _tasks,
+    // );
 
     super.initState();
   }
@@ -55,6 +58,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
   @override
   Widget build(BuildContext context) {
     DownloadStatus? status;
+    MultiRequestsHttp multiRequestsHttp = MultiRequestsHttp();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Download Files'),
@@ -62,32 +66,32 @@ class _DownloadScreenState extends State<DownloadScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(
-              child: ListView.builder(
-                itemCount: _tasks.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_tasks[index].filename),
-                    subtitle: Column(
-                      children: [
-                        Text(
-                            '${getFileSizeString(bytes: _tasks[index].totalsize)} totalsize downloaded'),
-                        Text(
-                            '${getFileSizeString(bytes: _tasks[index].downloadedBytes)} bytes downloaded'),
-                        Text(
-                            '${taskModel?.getDataa('downloadedBytes')} bytes downloaded'),
-                        Text(
-                            '${getFileSizeString(bytes: _tasks[index].endByte)} end downloaded'),
-                        Text(
-                            '${getFileSizeString(bytes: _tasks[index].startByte)} start downloaded'),
-                        Text(
-                            'downloadPercentage: ${taskModel?.downloadPercentage}'),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+            // Expanded(
+            //   child: ListView.builder(
+            //     itemCount: _tasks.length,
+            //     itemBuilder: (context, index) {
+            //       return ListTile(
+            //         title: Text(_tasks[index].filename),
+            //         subtitle: Column(
+            //           children: [
+            //             Text(
+            //                 '${getFileSizeString(bytes: _tasks[index].totalsize)} totalsize downloaded'),
+            //             Text(
+            //                 '${getFileSizeString(bytes: _tasks[index].downloadedBytes)} bytes downloaded'),
+            //             Text(
+            //                 '${taskModel?.getDataa('downloadedBytes')} bytes downloaded'),
+            //             Text(
+            //                 '${getFileSizeString(bytes: _tasks[index].endByte)} end downloaded'),
+            //             Text(
+            //                 '${getFileSizeString(bytes: _tasks[index].startByte)} start downloaded'),
+            //             Text(
+            //                 'downloadPercentage: ${taskModel?.downloadPercentage}'),
+            //           ],
+            //         ),
+            //       );
+            //     },
+            //   ),
+            // ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -99,8 +103,8 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
                     // await _downloadManager!.start();
 
-                    await MultiRequestsHttp().start();
-                    ['https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3'];
+                    MultiRequestsHttp().start(downloadmodel);
+                    // ['https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3'];
                     // debugPrint('doSomething() executed in ${stopwatch.elapsed}');
                     // final stopwatchh = Stopwatch()..start();
                     // debugPrint('doSomething() executed in ${stopwatchh.elapsed}');
@@ -109,22 +113,19 @@ class _DownloadScreenState extends State<DownloadScreen> {
                 ElevatedButton(
                   child: const Text('Pause'),
                   onPressed: () {
-                    for (var task in _tasks) {
-                      _downloadManager!.pauseDownload(task);
-                      debugPrint('passssssuse');
-                    }
+                    setState(() {
+                      multiRequestsHttp.pauseDownload(downloadmodel);
+                    });
+                    // setState(() {
+                    //   multiRequestsHttp.isPause = true;
+                    // });
                   },
                 ),
                 ElevatedButton(
                   child: const Text('Resume'),
                   onPressed: () async {
-                    status = DownloadStatus.resume;
-
-                    for (var task in _tasks) {
-                      _downloadManager!.reasumepauseDownload(task);
-                    }
-
-                    // if (task.status == DownloadStatus.pause) {}
+                    // multiRequestsHttp.status = DownloadStatus.resume;
+                    multiRequestsHttp.reasumeDownload(downloadmodel);
                   },
                 ),
                 ElevatedButton(
@@ -145,11 +146,11 @@ class _DownloadScreenState extends State<DownloadScreen> {
   }
 }
 
-enum DownloadStatus {
-  started,
-  pause,
-  resume,
-  cancel,
-  downloading,
-  completed;
-}
+// enum DownloadStatus {
+//   started,
+//   pause,
+//   resume,
+//   cancel,
+//   downloading,
+//   completed;
+// }

@@ -28,18 +28,11 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-        providers: [
-          ChangeNotifierProvider(
-            create: (context) => FileDownloaderProvider(),
-            child: const HomePage(),
-          ),
-        ],
-        child: const MaterialApp(
-            title: 'File Downloader',
-            debugShowCheckedModeBanner: false,
-            home: SafeArea(
-                bottom: false,
-                child: Scaffold(primary: false, body: DownloadScreen()))));
+    return const MaterialApp(
+        title: 'File Downloader',
+        debugShowCheckedModeBanner: false,
+        home: SafeArea(
+            bottom: false,
+            child: Scaffold(primary: false, body: DownloadScreen())));
   }
 }
