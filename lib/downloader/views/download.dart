@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:math';
 
+import 'package:download_task/download_task.dart';
 import 'package:flutter/material.dart';
 
 import '../data/multi_requests.dart';
@@ -22,43 +24,51 @@ class _DownloadScreenState extends State<DownloadScreen> {
   //     0,
   //     0,
   //   ),
-  //   // DownloadTask('https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
-  //   //     'file6.mp3', 0, 0),
-  //   // DownloadTask('https://www.example.com/file3.mp3', 'file3.mp3', 0, 0),
+  // DownloadTask('https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
+  //     'file6.mp3', 0, 0),
+  // DownloadTask('https://www.example.com/file3.mp3', 'file3.mp3', 0, 0),
   // ];
-  DownloadModel downloadmodel = DownloadModel(
+  MultiRequestsHttp? handleRequests;
+  bool pauseOrNot = false;
+
+  final DownloadModel downloadmodel = DownloadModel(
+    //  url : 'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
     urlss: [
       'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
-      'https://flutter-interivew-afasdfa.b-cdn.net/32_2.mp3',
-      // 'https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
-      // 'https://flutter-interivew-afasdfa.b-cdn.net/32_5.mp3'
+      'https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
+      'https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
+      'https://flutter-interivew-afasdfa.b-cdn.net/32_5.mp3'
     ],
+    // isPaused: false,
   );
   // DownloadModel? downloadModel;
-  static String getFileSizeString({required int bytes, int decimals = 0}) {
-    const suffixes = ["b", "kb", "mb", "gb", "tb"];
-    if (bytes == 0) return '0${suffixes[0]}';
-    var i = (log(bytes) / log(1024)).floor();
-    return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
-  }
+  // static String getFileSizeString({required int bytes, int decimals = 0}) {
+  //   const suffixes = ["b", "kb", "mb", "gb", "tb"];
+  //   if (bytes == 0) return '0${suffixes[0]}';
+  //   var i = (log(bytes) / log(1024)).floor();
+  //   return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
+  // }
 
   // DownloadTaskk? taskModel;
-  int? totalsize;
-  MultiRequestsHttp? handleRequests;
+  // int? totalsize;
 
   @override
   void initState() {
     // _downloadManager = DownloadManager(
     //   _tasks,
     // );
+    handleRequests = MultiRequestsHttp(
+      downloadmodel,
+      pauseOrNot,
+    );
 
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    DownloadStatus? status;
-    MultiRequestsHttp multiRequestsHttp = MultiRequestsHttp();
+    // DownloadStatus? status;
+    // MultiRequestsHttp multiRequestsHttp = MultiRequestsHttp();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Download Files'),
@@ -66,32 +76,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Expanded(
-            //   child: ListView.builder(
-            //     itemCount: _tasks.length,
-            //     itemBuilder: (context, index) {
-            //       return ListTile(
-            //         title: Text(_tasks[index].filename),
-            //         subtitle: Column(
-            //           children: [
-            //             Text(
-            //                 '${getFileSizeString(bytes: _tasks[index].totalsize)} totalsize downloaded'),
-            //             Text(
-            //                 '${getFileSizeString(bytes: _tasks[index].downloadedBytes)} bytes downloaded'),
-            //             Text(
-            //                 '${taskModel?.getDataa('downloadedBytes')} bytes downloaded'),
-            //             Text(
-            //                 '${getFileSizeString(bytes: _tasks[index].endByte)} end downloaded'),
-            //             Text(
-            //                 '${getFileSizeString(bytes: _tasks[index].startByte)} start downloaded'),
-            //             Text(
-            //                 'downloadPercentage: ${taskModel?.downloadPercentage}'),
-            //           ],
-            //         ),
-            //       );
-            //     },
-            //   ),
-            // ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -103,7 +87,9 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
                     // await _downloadManager!.start();
 
-                    MultiRequestsHttp().start(downloadmodel);
+                    // await handleRequests!.startDownload(downloadmodel);
+                    await handleRequests!.startDownload(downloadmodel);
+
                     // ['https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3'];
                     // debugPrint('doSomething() executed in ${stopwatch.elapsed}');
                     // final stopwatchh = Stopwatch()..start();
@@ -112,20 +98,27 @@ class _DownloadScreenState extends State<DownloadScreen> {
                 ),
                 ElevatedButton(
                   child: const Text('Pause'),
-                  onPressed: () {
-                    setState(() {
-                      multiRequestsHttp.pauseDownload(downloadmodel);
-                    });
+                  onPressed: () async {
+                    // await handleRequests!.startDownload(downloadmodel);
+
+                    // MultiRequestsHttp(
+                    //     downloadModel: downloadmodel, isPause: true);
                     // setState(() {
-                    //   multiRequestsHttp.isPause = true;
+                    //   pauseOrNot = true;
                     // });
+
+                    await handleRequests!.pauseDownload();
+
+                    // .pauseDownload();
                   },
                 ),
                 ElevatedButton(
                   child: const Text('Resume'),
                   onPressed: () async {
                     // multiRequestsHttp.status = DownloadStatus.resume;
-                    multiRequestsHttp.reasumeDownload(downloadmodel);
+                    await handleRequests!.reasumeDownload();
+
+                    await handleRequests!.startDownload(downloadmodel);
                   },
                 ),
                 ElevatedButton(

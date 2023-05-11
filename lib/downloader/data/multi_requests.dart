@@ -1,55 +1,63 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-
+import 'package:download_task/download_task.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DownloadModel {
   String? url;
-  List<String>? urlss;
+  final List<String> urlss;
 
   File? savePath;
   int downloadedBytes;
   double totalBytes;
   bool? isPaused;
+  StreamSubscription<List<int>>? streamSubscription;
   bool? isReasumed;
   DownloadStatus status;
 
   DownloadModel({
     this.url,
-    this.urlss,
+    required this.urlss,
     this.savePath,
+    this.streamSubscription,
     this.downloadedBytes = 0,
     this.totalBytes = 0,
-    this.isPaused = false,
     this.isReasumed = false,
+    this.isPaused,
     this.status = DownloadStatus.started,
   });
 }
 
 enum DownloadStatus { started, pasue, resume, downloading, completed }
 
-class MultiRequestsHttp {
-  DownloadStatus status = DownloadStatus.started;
-  bool isPause = false;
-  // final List<DownloadModel> _tasks;
+class MultiRequestsHttp extends GetxController {
+  // DownloadStatus status = DownloadStatus.started;
+  bool isPause;
+  DownloadModel downloadModel;
+  MultiRequestsHttp(
+    this.downloadModel,
+    this.isPause,
+  );
 
-  // MultiRequestsHttp(this._tasks);
-
-  Future<void> start(DownloadModel downloadModel) async {
-    await futureDownloadFiles(downloadModel.urlss!);
+  Future<void> start() async {
+    DownloadModel task = downloadModel;
+    _ddownloadFile(task);
   }
 
-  Future<void> futureDownloadFiles(List<String> urls) async {
+  Future<void> startDownload(DownloadModel downloadModel) async {
     final List<Future<void>> futures = [];
 
     final dir = Platform.isAndroid
         ? '/sdcard/download'
         : (await getApplicationDocumentsDirectory()).path;
 
-    for (int i = 0; i < urls.length; i++) {
-      final url = urls[i];
+    for (int i = 0; i < downloadModel.urlss.length; i++) {
+      final url = downloadModel.urlss[i];
+      debugPrint('url: $url');
       final fileName = _getFileNameFromUrl(url);
       final file = File('$dir/$fileName');
 
@@ -66,9 +74,11 @@ class MultiRequestsHttp {
       // File doesn't exist or is not complete, download it
       DownloadModel task = DownloadModel(
         url: url,
+        urlss: downloadModel.urlss,
         savePath: file,
       );
 
+      // final future = _downloadPackage(url, file, TaskEvent(state: event));
       final future = _ddownloadFile(task);
       futures.add(future);
     }
@@ -77,43 +87,68 @@ class MultiRequestsHttp {
     await Future.wait(futures);
     // await Future.wait(getLentgth);
     debugPrint('Future length: ${futures.length}');
-    debugPrint('Future finish');
+    debugPrint('Future started');
   }
 
   Future<File> _ddownloadFile(DownloadModel downloadModel) async {
     final httpClient = HttpClient();
-    final completer = Completer<void>();
-    while (downloadModel.isPaused == true) {
-      // if (downloadModel.isPaused  == true) {
-      await Future.delayed(const Duration(milliseconds: 30));
+    late final StreamSubscription subscription;
 
-      downloadModel.savePath!.deleteSync();
-      completer.completeError('Download paused.');
-      debugPrint('${downloadModel.savePath} downloaded pasued.');
-      //   continue;
-    }
     // final completer = Completer<void>();
 
-    try {
-      final request = await httpClient.getUrl(Uri.parse(downloadModel.url!));
-      final response = await request.close();
-      final startByte = await downloadModel.savePath!.exists()
-          ? downloadModel.savePath!.lengthSync()
-          : 0;
-      if (startByte > 0) {
-        request.headers.set('range', 'bytes=$startByte-');
-      }
-
-      final bytes = await consolidateHttpClientResponseBytes(response);
-
-      await downloadModel.savePath!.writeAsBytes(bytes);
-      debugPrint('downloaded file path = ${downloadModel.savePath!.path}');
-
-      return downloadModel.savePath!;
-    } catch (error) {
-      debugPrint(' downloading error = $error');
-      return File('');
+    // try {
+    final request = await httpClient.getUrl(Uri.parse(downloadModel.url!));
+    int startByte = await downloadModel.savePath!.exists()
+        ? downloadModel.savePath!.lengthSync()
+        : 0;
+    if (startByte > 0) {
+      request.headers.set('Range', 'bytes=$startByte-');
     }
+
+    final response = await request.close();
+
+    // final bytes = await consolidateHttpClientResponseBytes(response);
+
+    // await downloadModel.savePath!.writeAsBytes(bytes, mode: FileMode.append);
+    final output = downloadModel.savePath!.openWrite(mode: FileMode.append);
+
+    debugPrint('downloaded file path = ${downloadModel.savePath!.path}');
+
+    subscription = response.listen((data) async {
+      if (!isPause) {
+        output.add(data);
+        // startByte = output.;
+        debugPrint('Download in progress');
+      } else {
+        subscription.pause();
+        debugPrint('Download paused');
+        // await Future.delayed(const Duration(seconds: 10));
+        httpClient.connectionTimeout = const Duration(minutes: 5);
+        request.close();
+      }
+    }, onDone: () {
+      debugPrint('Download success');
+
+      output.close();
+
+      request.close();
+    }, onError: (error) {});
+    // await subscription.cancel();
+    return downloadModel.savePath!;
+  }
+  // catch (error) {
+  //   debugPrint(' downloading error = $error');
+  // return File('');
+  // }
+  // }
+
+  Future<bool> pauseDownload() async {
+    return isPause = true;
+  }
+
+  Future<bool> reasumeDownload() async {
+   
+    return isPause = false;
   }
 
   Future<double> _getContentLength(String url) async {
@@ -153,94 +188,4 @@ class MultiRequestsHttp {
 
     return true;
   }
-
-  bool pauseDownload(DownloadModel downloadModel) {
-    return downloadModel.isPaused = true;
-  }
-
-  bool reasumeDownload(DownloadModel downloadModel) {
-    return downloadModel.isPaused = false;
-  }
-
-  Future<void> _downloadFiles(String url, File file, int index,
-      double totalFileSize, bool isDownloadPasued) async {
-    final startByte = await file.exists() ? file.lengthSync() : 0;
-    final request = await HttpClient().getUrl(Uri.parse(url));
-
-    // request.headers
-    //     .set('range', 'bytes=$startByte-${totalFileSize.toInt() - 1}');
-
-    if (startByte > 0) {
-      request.headers.set('range', 'bytes=$startByte-');
-    }
-    final response = await request.close();
-    final completer = Completer<void>();
-    final output = file.openWrite(mode: FileMode.writeOnlyAppend);
-
-    // Set startByte and endByte for resuming download
-    debugPrint("pathh: ${file.path}");
-    if (response.statusCode == HttpStatus.partialContent) {
-      // Download is resuming from where it left off
-      request.headers
-          .set('range', 'bytes=$startByte-${totalFileSize.toInt() - 1}');
-    } else if (response.statusCode == HttpStatus.ok) {
-      // New download
-      await file.create(recursive: true);
-      // task.downloadedBytes = file.lengthSync();
-    } else {
-      // Unsupported HTTP status code
-      debugPrint(
-          'Error downloading ${file.path}. HTTP status code: ${response.statusCode}');
-      return;
-    }
-
-    response.listen((data) {
-      if (!isDownloadPasued) {
-        output.add(data);
-        // task.downloadedBytes += data.length;
-      } else {
-        // Cancel or pause request
-        request.abort();
-        output.close();
-        file.deleteSync();
-        completer.complete();
-      }
-    }, onDone: () {
-      output.close();
-      completer.complete();
-    }, onError: (error) {
-      output.close();
-      file.deleteSync();
-      completer.completeError(error);
-    });
-    debugPrint('File $index downloaded successfully');
-
-    completer.future;
-  }
-// Future<void> start(List<String> urls) async {
-//     double totalSize = await _getContentLength(urls);
-//     print('Total size: $totalSize');
-
-//     List<Future<File>> downloadFutures = [];
-//     for (String url in urls) {
-//       downloadFutures.add(downloadFiles(urls));
-//     }
-
-//     List<File> downloadedFiles = await Future.wait(downloadFutures);
-
-//     // Check that all files have been downloaded completely
-//     bool allComplete = false;
-//     while (!allComplete) {
-//       allComplete = true;
-//       for (File file in downloadedFiles) {
-//         int fileSize = await file.length();
-//         if (fileSize < totalSize) {
-//           allComplete = false;
-//           await Future.delayed(Duration(seconds: 1));
-//           break;
-//         }
-//       }
-//     }
-
-//     print('All files downloaded completely!');
 }

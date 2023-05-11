@@ -36,3 +36,7 @@ class _MyAppState extends State<MyApp> {
             child: Scaffold(primary: false, body: DownloadScreen())));
   }
 }
+// DownloadUI(
+//                   url: 'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
+//                   fileName: 'mp4.mp3',
+                // )

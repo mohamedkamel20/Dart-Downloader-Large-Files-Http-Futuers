@@ -112,3 +112,72 @@
 
 //   List<DownloadTask> get tasks => _tasks;
 // }
+import 'dart:io';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+
+class Downloader {
+  static const String downloadPath = '/downloads/';
+
+  Future<File> downloadFile(String url, String filename) async {
+    final response = await http.get(Uri.parse(url));
+    final contentLength = response.headers['content-length'];
+    final bytes = response.bodyBytes;
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}$downloadPath$filename}');
+
+    if (file.existsSync()) {
+      final downloadedBytes = await file.length();
+      if (downloadedBytes == int.parse(contentLength!)) {
+        return file;
+      }
+    }
+
+    await file.writeAsBytes(bytes);
+
+    return file;
+  }
+
+  StreamSubscription<http.StreamedResponse> downloadFileWithProgress(
+    String url,
+    String filename,
+    Function(int, int) onProgressUpdate,
+    Completer<File> completer,
+  ) {
+    final request = http.Request('GET', Uri.parse(url));
+    final dir = getApplicationDocumentsDirectory();
+    final fileStreamController = StreamController<http.StreamedResponse>();
+    final subscription = fileStreamController.stream.listen((response) async {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}$downloadPath$filename}');
+
+      final totalBytes = int.parse(response.headers['content-length']!);
+      int receivedBytes = 0;
+
+      final fileStream = file.openWrite(mode: FileMode.writeOnlyAppend);
+      await for (var chunk in response.stream) {
+        fileStream.add(chunk);
+        receivedBytes += chunk.length;
+        onProgressUpdate(receivedBytes, totalBytes);
+      }
+
+      await fileStream.flush();
+      await fileStream.close();
+
+      completer.complete(file);
+    });
+
+    // request.headers.addAll({'Range': 'bytes=${file.length()}-'});
+    final responseStream = request.send();
+    responseStream.asStream().listen(
+          (response) => fileStreamController.add(response),
+          onError: (e) => completer.completeError(e),
+          onDone: () => fileStreamController.close(),
+          cancelOnError: true,
+        );
+
+    return subscription;
+  }
+}
