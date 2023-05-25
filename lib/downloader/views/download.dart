@@ -1,10 +1,9 @@
-import 'dart:io';
-import 'dart:math';
-
-import 'package:download_task/download_task.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:mp3downloader/downloader/data/audio_player.dart';
 
 import '../data/multi_requests.dart';
+import 'audio_player_screen.dart';
 // import '../data/pool_http.dart';
 
 class DownloadScreen extends StatefulWidget {
@@ -15,32 +14,24 @@ class DownloadScreen extends StatefulWidget {
 }
 
 class _DownloadScreenState extends State<DownloadScreen> {
-  // DownloadManager? _downloadManager;
-  // final List<DownloadTaskk> _tasks = [
-  //   DownloadTaskk(
-  //     'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
-  //     'My file 8.mp3',
-  //     0,
-  //     0,
-  //     0,
-  //   ),
-  // DownloadTask('https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
-  //     'file6.mp3', 0, 0),
-  // DownloadTask('https://www.example.com/file3.mp3', 'file3.mp3', 0, 0),
-  // ];
   MultiRequestsHttp? handleRequests;
   bool pauseOrNot = false;
 
-  final DownloadModel downloadmodel = DownloadModel(
-    //  url : 'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
-    urlss: [
-      'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
-      'https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
-      'https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3',
-      'https://flutter-interivew-afasdfa.b-cdn.net/32_5.mp3'
-    ],
-    // isPaused: false,
-  );
+  // Future<List<DownloadModel>> getAllItems() async {
+  //    DownloadModel? downloadModel;
+  //   var client = Client();
+  //   List<String> itemsIds = ['1', '2', '3']; //different ids
+
+  //   List<Response> list = await Future.wait(
+  //       itemsIds.map((itemId) => client.get('sampleapi/$itemId/next')));
+
+  //   return list.map((response) {
+  //     // do processing here and return items
+  //     return downloadModel!;
+  //   }).toList();
+  // }
+
+  DownloadModel? downloadmodel;
   // DownloadModel? downloadModel;
   // static String getFileSizeString({required int bytes, int decimals = 0}) {
   //   const suffixes = ["b", "kb", "mb", "gb", "tb"];
@@ -51,24 +42,40 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   // DownloadTaskk? taskModel;
   // int? totalsize;
+  DownloadStatus status = DownloadStatus.started;
+  List<String> urlss = [];
 
   @override
   void initState() {
     // _downloadManager = DownloadManager(
     //   _tasks,
     // );
-    handleRequests = MultiRequestsHttp(
-      downloadmodel,
-      pauseOrNot,
-    );
+    // handleRequests = MultiRequestsHttp(
+    //   status,
+    //   downloadmodel,
+    //   pauseOrNot,
+    // );
+    // controller = Get.put(MultiRequestsHttp(
+
+    // ));
+    for (int i = 1; i < 3; i++) {
+      urlss.add('https://flutter-interivew-afasdfa.b-cdn.net/32_$i.mp3');
+      downloadmodel = DownloadModel(
+        urlss: urlss,
+        // status: DownloadStatus.notStarted
+        // isPaused: false,
+      );
+      continue;
+    }
 
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // DownloadStatus? status;
     // MultiRequestsHttp multiRequestsHttp = MultiRequestsHttp();
+    final controller = Get.put(MultiRequestsHttp(downloadmodel!, false));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Download Files'),
@@ -76,49 +83,37 @@ class _DownloadScreenState extends State<DownloadScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // downloadProgressWidget(handleRequests!),
+            const SizedBox(height: 20),
+
+            Obx(() => Text(controller.statuss.value)),
+
+            const SizedBox(height: 20),
+
+            Obx(() => Text("${controller.downloadPercntage.value}")),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
                   child: const Text('Start'),
                   onPressed: () async {
-                    // final stopwatch = Stopwatch()..start();
-                    // status = DownloadStatus.started;
+                    await controller.reasumeDownload();
 
-                    // await _downloadManager!.start();
-
-                    // await handleRequests!.startDownload(downloadmodel);
-                    await handleRequests!.startDownload(downloadmodel);
-
-                    // ['https://flutter-interivew-afasdfa.b-cdn.net/32_1.mp3'];
-                    // debugPrint('doSomething() executed in ${stopwatch.elapsed}');
-                    // final stopwatchh = Stopwatch()..start();
-                    // debugPrint('doSomething() executed in ${stopwatchh.elapsed}');
+                    await controller.startDownload(downloadmodel!);
                   },
                 ),
                 ElevatedButton(
                   child: const Text('Pause'),
                   onPressed: () async {
-                    // await handleRequests!.startDownload(downloadmodel);
-
-                    // MultiRequestsHttp(
-                    //     downloadModel: downloadmodel, isPause: true);
-                    // setState(() {
-                    //   pauseOrNot = true;
-                    // });
-
-                    await handleRequests!.pauseDownload();
-
-                    // .pauseDownload();
+                    await controller.pauseDownload();
                   },
                 ),
                 ElevatedButton(
                   child: const Text('Resume'),
                   onPressed: () async {
-                    // multiRequestsHttp.status = DownloadStatus.resume;
-                    await handleRequests!.reasumeDownload();
+                    await controller.reasumeDownload();
 
-                    await handleRequests!.startDownload(downloadmodel);
+                    await controller.startDownload(downloadmodel!);
                   },
                 ),
                 ElevatedButton(
@@ -132,11 +127,71 @@ class _DownloadScreenState extends State<DownloadScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+                onPressed: () {
+                  Get.to(AudioPlayerScreen());
+                },
+                child: const Text('Play Screen'))
           ],
         ),
       ),
     );
   }
+
+  // Widget downloadProgressWidget(MultiRequestsHttp requeststatues) {
+  //   return Text(
+  //     progressStatus(requeststatues),
+  //     // downloadStatus(downloadModel),
+  //     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  //   );
+  // }
+
+  // String progressStatus(MultiRequestsHttp requeststatues) {
+  //   String? status;
+  //   downloadStatus(requeststatues).listen((event) {
+  //     status = event;
+  //   });
+  //   // .then((value) => status = value);
+  //   return status ?? "nulll";
+  // }
+
+  // String downloadStatus(MultiRequestsHttp requeststatues) {
+  //   RxString retStatus = "".obs;
+
+  //   switch (requeststatues.status.value) {
+  //     case DownloadStatus.downloading:
+  //       {
+  //         retStatus.value =
+  //             "Download Progress : ${requeststatues.downloadPercntage.value}%";
+  //       }
+  //       break;
+  //     case DownloadStatus.completed:
+  //       {
+  //         retStatus.value = "Download Completed";
+  //       }
+  //       break;
+  //     case DownloadStatus.notStarted:
+  //       {
+  //         retStatus.value = "Click Download Button";
+  //       }
+  //       break;
+  //     case DownloadStatus.started:
+  //       {
+  //         retStatus.value = "Download Started";
+  //       }
+  //       break;
+  //     case DownloadStatus.pause:
+  //       {
+  //         retStatus.value = 'Download Pause';
+  //       }
+  //       break;
+  //     default:
+  //       break;
+  //   }
+
+  //   return requeststatues.statuss.value = retStatus.value;
+  // }
 }
 
 // enum DownloadStatus {
@@ -147,3 +202,4 @@ class _DownloadScreenState extends State<DownloadScreen> {
 //   downloading,
 //   completed;
 // }
+

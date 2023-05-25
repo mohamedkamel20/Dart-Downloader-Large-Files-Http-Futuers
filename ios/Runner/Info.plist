@@ -51,7 +51,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSDownloadsFolderUsageDescription</key>
+	<key>kTCCServiceMediaLibrary</key>
 	<string>yes</string>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string></string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string></string>
 </dict>
 </plist>

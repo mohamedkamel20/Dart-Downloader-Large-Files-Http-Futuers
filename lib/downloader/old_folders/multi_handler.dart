@@ -147,7 +147,7 @@ class Downloader {
     Completer<File> completer,
   ) {
     final request = http.Request('GET', Uri.parse(url));
-    final dir = getApplicationDocumentsDirectory();
+    // final dir = getApplicationDocumentsDirectory();
     final fileStreamController = StreamController<http.StreamedResponse>();
     final subscription = fileStreamController.stream.listen((response) async {
       final dir = await getApplicationDocumentsDirectory();

@@ -23,9 +23,9 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_downloader (from `.symlinks/plugins/flutter_downloader/ios`)
   - just_audio (from `.symlinks/plugins/just_audio/ios`)
-  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
-  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
 
 EXTERNAL SOURCES:
   audio_session:
@@ -39,11 +39,11 @@ EXTERNAL SOURCES:
   just_audio:
     :path: ".symlinks/plugins/just_audio/ios"
   path_provider_foundation:
-    :path: ".symlinks/plugins/path_provider_foundation/ios"
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   shared_preferences_foundation:
-    :path: ".symlinks/plugins/shared_preferences_foundation/ios"
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
 
 SPEC CHECKSUMS:
   audio_session: 4f3e461722055d21515cf3261b64c973c062f345
@@ -51,9 +51,9 @@ SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   flutter_downloader: b7301ae057deadd4b1650dc7c05375f10ff12c39
   just_audio: baa7252489dbcf47a4c7cc9ca663e9661c99aafa
-  path_provider_foundation: c68054786f1b4f3343858c1e1d0caaded73f0be9
+  path_provider_foundation: eaf5b3e458fc0e5fbb9940fb09980e853fe058b8
   permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce
-  shared_preferences_foundation: 986fc17f3d3251412d18b0265f9c64113a8c2472
+  shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
 
 PODFILE CHECKSUM: cc1f88378b4bfcf93a6ce00d2c587857c6008d3b
 

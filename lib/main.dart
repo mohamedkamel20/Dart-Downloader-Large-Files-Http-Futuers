@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:mp3downloader/downloader/views/download_screen.dart';
-import 'package:provider/provider.dart';
 
-import 'downloader/data/new_handler.dart';
+import 'downloader/views/audio_player_screen.dart';
 import 'downloader/views/download.dart';
-import 'downloader/views/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +33,3 @@ class _MyAppState extends State<MyApp> {
             child: Scaffold(primary: false, body: DownloadScreen())));
   }
 }
-// DownloadUI(
-//                   url: 'https://flutter-interivew-afasdfa.b-cdn.net/32_4.mp3',
-//                   fileName: 'mp4.mp3',
-                // )
