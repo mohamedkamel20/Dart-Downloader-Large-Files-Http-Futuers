@@ -56,8 +56,15 @@
 	<key>UISupportsDocumentBrowser</key>
 	<true/>
 	<key>NSDocumentsFolderUsageDescription</key>
-	<string></string>
+	<string>Access to the File app</string>
 	<key>NSDownloadsFolderUsageDescription</key>
-	<string></string>
+	<string>Access to the File app</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsForMedia</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

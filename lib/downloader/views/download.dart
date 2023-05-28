@@ -130,7 +130,7 @@ class _DownloadScreenState extends State<DownloadScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
-                  Get.to(AudioPlayerScreen());
+                  Get.to(() => AudioPlayerScreen());
                 },
                 child: const Text('Play Screen'))
           ],
