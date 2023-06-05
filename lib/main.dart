@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
+
 import 'package:get/get.dart';
 
-import 'downloader/views/audio_player_screen.dart';
-import 'downloader/views/download.dart';
 import 'downloader/views/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterDownloader.initialize();
+
   runApp(const MyApp());
 }
 

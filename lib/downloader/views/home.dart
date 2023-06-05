@@ -6,8 +6,8 @@ import 'package:mp3downloader/downloader/data/cache.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-import '../data/multi_audio_player.dart.dart';
-import '../data/multi_requests.dart';
+import '../data/audio_player_manager.dart';
+import '../data/download_manager.dart';
 
 Color greenTouch = Vx.hexToColor('#788154');
 RxBool isDownloadPaused = false.obs;
@@ -31,10 +31,12 @@ class _HomeState extends State<Home> {
       backgroundColor: Vx.hexToColor('#e8eddb'),
       body: SafeArea(
         child: ListView(shrinkWrap: true, children: [
-          // const DonwloaderView().p16().h(context.percentHeight * 27),
-          downloadController.checIfdownloadCompelete.value
-              ? const PlayList().p16().h(context.percentHeight * 35)
-              : const DonwloaderView().p16().h(context.percentHeight * 27),
+          Obx(
+            () => downloadController.checIfdownloadCompelete.value
+                ? const PlayList().p16().h(context.percentHeight * 35)
+                : const DonwloaderView().p16().h(context.percentHeight * 27),
+          ),
+
           const AudioPlayerView().p16().h(context.percentHeight * 35),
           // const PlayList().p16().h(context.percentHeight * 35),
         ]),
@@ -54,7 +56,7 @@ class RoundedBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return VxBox(child: child)
-        .color(Vx.hexToColor('#fff6db '))
+        .color(Vx.hexToColor('#fff6db'))
         .roundedLg
         .p24
         .make();
@@ -90,17 +92,16 @@ class _DonwloaderViewState extends State<DonwloaderView> {
             ),
 
             // Text(downloadController.statuss).text.xl2.thin.tighter.make(),
-            Obx(
-              () => LinearPercentIndicator(
-                width: MediaQuery.of(context).size.width - 100,
-                animation: true,
-                lineHeight: 15.0,
-                animationDuration: 2500,
-                percent: downloadController.downloadPercentage.value / 100,
-                center: Text('${downloadController.downloadPercentage}%'),
-                // linearStrokeCap: LinearStrokeCap.roundAll,
-                progressColor: Colors.green,
-              ),
+            LinearPercentIndicator(
+              width: MediaQuery.of(context).size.width - 100,
+              animation: true,
+              lineHeight: 15.0,
+              animationDuration: 2500,
+              percent: downloadController.downloadPercentage.value / 100,
+              center: Obx(() =>
+                  Text('${downloadController.downloadPercentage.value}%')),
+              // linearStrokeCap: LinearStrokeCap.roundAll,
+              progressColor: Colors.green,
             ),
 
             Row(
@@ -190,7 +191,7 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
             [
               IconButton(
                   onPressed: () {
-                    playController.play();
+                    playController.onRepeatButtonPressed();
                   },
                   iconSize: 24,
                   icon: const Icon(Icons.repeat)),
@@ -229,13 +230,15 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
                   icon: const Icon(Icons.skip_next)),
               IconButton(
                   onPressed: () {
-                    playController.seek(const Duration(seconds: 10));
+                    playController.seek(Duration(
+                        seconds:
+                            (playController.progress.value.inSeconds + 10)));
                   },
                   iconSize: 24,
                   icon: const Icon(Icons.forward_10)),
               IconButton(
                   onPressed: () {
-                    playController.play();
+                    playController.isShuffleModeEnabled.value = true;
                   },
                   iconSize: 24,
                   icon: const Icon(Icons.shuffle)),

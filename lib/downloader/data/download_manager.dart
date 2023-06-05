@@ -2,19 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'cache.dart';
 
 //
 enum DownloadStatus { notStarted, started, downloading, completed, pause }
 
 class DownloadManager extends GetxController {
   final List<String> _listOfUrls = [];
-  // final _saveFile = File;
+
   RxBool isPause = false.obs;
   RxInt downloadPercentage = 0.obs;
   RxDouble totalcontentLength = 0.0.obs;
@@ -22,17 +18,29 @@ class DownloadManager extends GetxController {
   List<String> get listOfUrls => _listOfUrls;
   RxBool checIfdownloadCompelete = false.obs;
   double contentLength = 0.0;
-  // final cachecController = Get.put(SharedCahche());
-  // final cachec = SharedCahche();
+
+  @override
+  void onInit() {
+    super.onInit();
+
+    getUrls();
+  }
+
+  void getUrls() async {
+    for (int i = 1; i < 4; i++) {
+      _listOfUrls.add('https://flutter-interivew-afasdfa.b-cdn.net/32_$i.mp3');
+    }
+
+    debugPrint('urlsss :: ${_listOfUrls.toString()}');
+  }
+
   Future<void> startDownload() async {
     final List<Future<void>> futures = [];
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
 
     final dir = Platform.isAndroid
         ? '/storage/emulated/0/Download'
         : (await getApplicationDocumentsDirectory()).path;
 
-    // ? StorageDirectory.documents
     for (int i = 0; i < _listOfUrls.length; i++) {
       final url = _listOfUrls[i];
       debugPrint('url: $url');
@@ -50,25 +58,27 @@ class DownloadManager extends GetxController {
         debugPrint('File $fileName already exists and is complete');
         debugPrint('File ${file.path} already exists and is complete');
 
-        // cachec.setCheckIfDownloadComplete(true);
-        // checIfdownloadCompelete.value = true;
+        checIfdownloadCompelete.value = true;
         continue;
       }
 
-      final future = _ddownloadFile(url, file);
+      final future = downloadFiles(url, file);
 
       futures.add(future);
       debugPrint('Future length: ${futures.length}');
       debugPrint('Future started');
     }
+    // progressBarByFutures(futures, (completed, total) {});
 
     // Wait for all downloads to complete
     await Future.wait(futures);
     debugPrint('Future completed');
     checIfdownloadCompelete.value = true;
+
+    debugPrint(checIfdownloadCompelete.value.toString());
   }
 
-  Future<void> _ddownloadFile(String url, File savePath) async {
+  Future<void> downloadFiles(String url, File savePath) async {
     final httpClient = HttpClient();
     late final StreamSubscription subscription;
     final completer = Completer<void>();
@@ -80,35 +90,25 @@ class DownloadManager extends GetxController {
       int startByte = await savePath.exists() ? savePath.lengthSync() : 0;
       if (startByte > 0) {
         request.headers.set('Range', 'bytes=$startByte-');
-        // request.map((e) => e.headers.set('Range', 'bytes=$startByte-'));
       }
 
-      // final response = request.map((e) async => await e.close());
       final response = await request.close();
-
-      // final bytes = await consolidateHttpClientResponseBytes(response);
-
-      // await downloadModel.savePath!.writeAsBytes(bytes, mode: FileMode.append);
       final output = savePath.openWrite(mode: FileMode.writeOnlyAppend);
 
-      // File filess = File(savePath.path);
       totalcontentLength.value = contentLength;
       int totladownloaded = 0;
-      debugPrint(
-          'total before start download is ::: = ${totalcontentLength.value}');
-
-      // debugPrint('download percentage = ${downloadPercentage.value} ');
+      debugPrint('total download is ::: = ${totalcontentLength.value}');
 
       subscription = response.listen((data) async {
         if (!isPause.value) {
           output.add(data);
-          // savePath.writeAsBytesSync(data, mode: FileMode.append);
+
           totladownloaded += data.length;
 
-          totladownloaded = savePath.lengthSync();
+          // Download Percentage
           downloadPercentage.value =
               ((totladownloaded / totalcontentLength.value) * 100).round();
-          // startByte += data.length;
+          startByte += data.length;
 
           statuss.value = 'Downloading...';
 
@@ -117,7 +117,7 @@ class DownloadManager extends GetxController {
           subscription.pause();
 
           debugPrint('Download paused');
-          // status.value = DownloadStatus.pause;
+
           statuss.value = 'Paused';
 
           request.close();
@@ -125,9 +125,8 @@ class DownloadManager extends GetxController {
       }, onDone: () {
         completer.complete();
         debugPrint('Download success');
-        // status.value = DownloadStatus.completed;
+
         statuss.value = 'Download Completed';
-        checIfdownloadCompelete.value = true;
 
         output.close();
 
@@ -211,18 +210,17 @@ class DownloadManager extends GetxController {
     }
   }
 
-  void getUrls() async {
-    for (int i = 1; i < 3; i++) {
-      _listOfUrls.add('https://flutter-interivew-afasdfa.b-cdn.net/32_$i.mp3');
+  Future<List<T>> progressBarByFutures<T>(List<Future<T>> futures,
+      void Function(int completed, int total) progress) {
+    int total = futures.length;
+    int completed = 0;
+    void complete() {
+      completed++;
+      progress(completed, total);
+      // downloadPercentage.value = ((completed / total) * 100).round();
     }
-    // await startDownload(urls: _listOfUrls);
-    debugPrint('urlsss :: ${_listOfUrls.toString()}');
-  }
 
-  @override
-  void onInit() {
-    super.onInit();
-
-    getUrls();
+    return Future.wait<T>(
+        [for (var future in futures) future.whenComplete(complete)]);
   }
 }

@@ -1,16 +1,15 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:mp3downloader/downloader/data/repeate_button.dart';
 import 'package:path_provider/path_provider.dart';
-
 import 'progrees_audio.dart';
 
 class PageManager extends GetxController {
   late AudioPlayer audioPlayer;
   late AudioPlayer specificAudioPlayer;
-  late ConcatenatingAudioSource _playlist;
+  late ConcatenatingAudioSource playlist;
   Rx<PlayerState> playerState = PlayerState.stopped.obs;
   RxString currentAudioTitle = ''.obs;
   List<String> playListTitle = [''];
@@ -22,29 +21,16 @@ class PageManager extends GetxController {
   RxBool isLastaudio = false.obs;
   RxBool isShuffleModeEnabled = false.obs;
   final progressBar = ProgressController();
-  RxInt indexPlay = 0.obs;
+  // RxInt indexPlay = 0.obs;
   List<AudioSource> list = [];
-
-  // final Rx<SequenceState> _sequenceState = SequenceState.obs;
-
-  // PlayerState get playerState => playerState.value;
-  // Duration get progress => progress.value;
-  // Duration get totalDuration => totalDuration.value;
-  // Duration get bufferedPosition => bufferedPosition.value;
-  // RepeatMode get repeatMode => repeatMode.value;
-  // bool get isFirstaudio => isFirstaudio.value;
-  // bool get isLastaudio => isLastaudio.value;
-  // bool get isShuffleModeEnabled => isShuffleModeEnabled.value;
-  // String get currentAudioTitle => currentAudioTitle.value;
-  // List<String> get playListTitle => playListTitle;
-  // int get indexPlay => _indexPlay.value;
+  final repeatbutton = RepeatButtonController();
 
   @override
   void onInit() {
     super.onInit();
     audioPlayer = AudioPlayer();
     specificAudioPlayer = AudioPlayer();
-    // getFileUrl();
+
     _setInitialPlaylist();
     _initAudioPlayerState();
     _listenForChangesInPlayerState();
@@ -52,7 +38,6 @@ class PageManager extends GetxController {
     _listenForChangesInBufferedPosition();
     _listenForChangesInTotalDuration();
     _listenForChangesInSequenceState();
-    // addSong();
   }
 
   void _initAudioPlayerState() {
@@ -93,22 +78,23 @@ class PageManager extends GetxController {
 
   Future<void> _setInitialPlaylist() async {
     try {
-      for (int i = 1; i < 3; i++) {
+      for (int i = 1; i < 4; i++) {
         final appDirectory = await getApplicationDocumentsDirectory();
-        final filePath = '${appDirectory.path}/32_$i.mp3';
-        final file = File(filePath);
-        final fileUri = file.uri;
+        // final filePath = '${appDirectory.path}/32_$i.mp3';
+        final file = File('${appDirectory.path}/32_$i.mp3');
+
+        // final fileUri = file.uri;
 
         list.add(AudioSource.uri(
-          fileUri,
-          tag: _getFileNameFromUrl(fileUri.toString()),
+          file.uri,
+          tag: _getFileNameFromUrl(file.uri.toString()),
         ));
-        playListTitle.add(_getFileNameFromUrl(fileUri.toString()));
+        playListTitle.add(_getFileNameFromUrl(file.uri.toString()));
         debugPrint(file.path);
 
-        _playlist = ConcatenatingAudioSource(children: list);
+        playlist = ConcatenatingAudioSource(children: list);
         await audioPlayer.setAudioSource(
-          _playlist,
+          playlist,
         );
       }
     } catch (e) {
@@ -122,9 +108,10 @@ class PageManager extends GetxController {
   }
 
   void playAudio(int index) async {
-    // final audioFile = list[index];
+    if (playlist == null) return;
     await audioPlayer.setAudioSource(
-      list[index],
+      playlist,
+      initialIndex: index,
     );
     stop();
     await audioPlayer.play();
@@ -141,18 +128,20 @@ class PageManager extends GetxController {
   }
 
   void playPrevious() async {
-    if (_playlist == null) return;
+    if (playlist == null) return;
     await audioPlayer.seekToPrevious();
   }
 
   void playNext() async {
-    if (_playlist == null) return;
+    if (playlist == null) return;
     await audioPlayer.seekToNext();
   }
 
   void seek(Duration position) async {
     if (playerState.value == PlayerState.stopped) return;
-    await audioPlayer.seek(position, index: indexPlay.value);
+    await audioPlayer.seek(
+      position,
+    );
   }
 
   void setRepeatMode(RepeatMode mode) {
@@ -167,19 +156,19 @@ class PageManager extends GetxController {
     super.onClose();
   }
 
-  // void onRepeatButtonPressed() {
-  //   repeatButton.nextState();
-  //   switch (repeatButton.value) {
-  //     case RepeatMode.off:
-  //       audioPlayer.setLoopMode(LoopMode.off);
-  //       break;
-  //     case RepeatState.repeatSong:
-  //       audioPlayer.setLoopMode(LoopMode.one);
-  //       break;
-  //     case RepeatState.repeatPlaylist:
-  //       audioPlayer.setLoopMode(LoopMode.all);
-  //   }
-  // }
+  void onRepeatButtonPressed() {
+    repeatbutton.nextState();
+    switch (repeatbutton.repeatState.value) {
+      case RepeatState.off:
+        audioPlayer.setLoopMode(LoopMode.off);
+        break;
+      case RepeatState.repeatSong:
+        audioPlayer.setLoopMode(LoopMode.one);
+        break;
+      case RepeatState.repeatPlaylist:
+        audioPlayer.setLoopMode(LoopMode.all);
+    }
+  }
 
   void _listenForChangesInPlayerState() {
     audioPlayer.playerStateStream.listen((state) {
