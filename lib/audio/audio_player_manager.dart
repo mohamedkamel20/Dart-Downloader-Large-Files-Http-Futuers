@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:mp3downloader/downloader/data/repeate_button.dart';
+import 'package:mp3downloader/audio/repeate_button.dart';
 import 'package:path_provider/path_provider.dart';
 import 'progrees_audio.dart';
 
@@ -78,10 +78,12 @@ class PageManager extends GetxController {
 
   Future<void> _setInitialPlaylist() async {
     try {
-      for (int i = 1; i < 4; i++) {
-        final appDirectory = await getApplicationDocumentsDirectory();
+      for (int i = 1; i < 3; i++) {
+        final appDirectory = Platform.isAndroid
+            ? '/storage/emulated/0/Download'
+            : (await getApplicationDocumentsDirectory()).path;
         // final filePath = '${appDirectory.path}/32_$i.mp3';
-        final file = File('${appDirectory.path}/32_$i.mp3');
+        File file = File('$appDirectory/32_$i.mp3');
 
         // final fileUri = file.uri;
 
@@ -102,6 +104,28 @@ class PageManager extends GetxController {
     }
   }
 
+  Future<void> deleteAudioFiles() async {
+    final appDirectory = Platform.isAndroid
+        ? '/storage/emulated/0/Download'
+        : (await getApplicationDocumentsDirectory()).path;
+    try {
+      final directory = Directory(appDirectory);
+      if (await directory.exists()) {
+        final files = directory.listSync(recursive: false);
+        for (final file in files) {
+          if (file is File && file.path.endsWith('.mp3')) {
+            await file.delete();
+          }
+        }
+        debugPrint('Audio files deleted successfully');
+      } else {
+        debugPrint('Folder does not exist');
+      }
+    } catch (e) {
+      debugPrint('Error deleting audio files: $e');
+    }
+  }
+
   void play() async {
     if (playerState.value == PlayerState.loading) return;
     await audioPlayer.play();
@@ -109,6 +133,7 @@ class PageManager extends GetxController {
 
   void playAudio(int index) async {
     if (playlist == null) return;
+    
     await audioPlayer.setAudioSource(
       playlist,
       initialIndex: index,
@@ -142,6 +167,17 @@ class PageManager extends GetxController {
     await audioPlayer.seek(
       position,
     );
+  }
+
+  void backseek(Duration position) async {
+    if (playerState.value == PlayerState.stopped) return;
+    await audioPlayer.seek(
+      position,
+    );
+  }
+
+  void playBack() {
+    audioPlayer.setSpeed(1.5);
   }
 
   void setRepeatMode(RepeatMode mode) {

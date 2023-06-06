@@ -12,12 +12,14 @@ class DownloadManager extends GetxController {
   final List<String> _listOfUrls = [];
 
   RxBool isPause = false.obs;
+  RxBool isCanceld = false.obs;
   RxInt downloadPercentage = 0.obs;
   RxDouble totalcontentLength = 0.0.obs;
   RxString statuss = 'Start Download Now'.obs;
   List<String> get listOfUrls => _listOfUrls;
   RxBool checIfdownloadCompelete = false.obs;
   double contentLength = 0.0;
+  late final StreamSubscription subscription;
 
   @override
   void onInit() {
@@ -27,7 +29,7 @@ class DownloadManager extends GetxController {
   }
 
   void getUrls() async {
-    for (int i = 1; i < 4; i++) {
+    for (int i = 1; i < 3; i++) {
       _listOfUrls.add('https://flutter-interivew-afasdfa.b-cdn.net/32_$i.mp3');
     }
 
@@ -58,7 +60,7 @@ class DownloadManager extends GetxController {
         debugPrint('File $fileName already exists and is complete');
         debugPrint('File ${file.path} already exists and is complete');
 
-        checIfdownloadCompelete.value = true;
+        // checIfdownloadCompelete.value = true;
         continue;
       }
 
@@ -80,7 +82,6 @@ class DownloadManager extends GetxController {
 
   Future<void> downloadFiles(String url, File savePath) async {
     final httpClient = HttpClient();
-    late final StreamSubscription subscription;
     final completer = Completer<void>();
 
     try {
@@ -101,20 +102,36 @@ class DownloadManager extends GetxController {
 
       subscription = response.listen((data) async {
         if (!isPause.value) {
-          output.add(data);
+          if (!isCanceld.value) {
+            output.add(data);
 
-          totladownloaded += data.length;
+            totladownloaded += data.length;
 
-          // Download Percentage
-          downloadPercentage.value =
-              ((totladownloaded / totalcontentLength.value) * 100).round();
-          startByte += data.length;
+            // Download Percentage
+            downloadPercentage.value =
+                ((totladownloaded / totalcontentLength.value) * 100).round();
+            startByte += data.length;
 
-          statuss.value = 'Downloading...';
+            statuss.value = 'Downloading...';
 
-          debugPrint('Download in progress');
+            debugPrint('Download in progress');
+          } else {
+            // Cancelled download
+            debugPrint('Download Cancelled');
+            statuss.value = 'Download Cancelled';
+            output.close();
+            request.close();
+            await savePath.delete();
+            subscription.cancel();
+            // try {
+            //   await savePath.delete();
+            // } catch (e) {
+            //   debugPrint(e.toString());
+            // }
+          }
         } else {
           subscription.pause();
+          // subscription.pause();
 
           debugPrint('Download paused');
 
@@ -125,19 +142,18 @@ class DownloadManager extends GetxController {
       }, onDone: () {
         completer.complete();
         debugPrint('Download success');
-
         statuss.value = 'Download Completed';
-
         output.close();
-
         request.close();
       }, onError: (error) {
         completer.completeError(error);
+        savePath.delete();
+        debugPrint('Download error = $error');
 
         subscription.cancel();
         statuss.value = 'Download Canceld';
-      });
-      // await subscription.cancel();
+      }, cancelOnError: true);
+
       return await completer.future;
     } catch (error) {
       debugPrint(' downloading error = $error');
@@ -153,9 +169,13 @@ class DownloadManager extends GetxController {
     return isPause.value = false;
   }
 
+  Future<bool> cancelDownload() async {
+    return isCanceld.value = true;
+  }
+
   Future<double> _getContentLength(String url) async {
     int contentLength = 0;
-    // for (var url in urls) {
+
     final request = await HttpClient().getUrl(Uri.parse(url));
     final response = await request.close();
     contentLength = response.contentLength + contentLength;
@@ -189,25 +209,6 @@ class DownloadManager extends GetxController {
     }
 
     return true;
-  }
-
-  Future<void> deleteAudioFiles(String folderPath) async {
-    try {
-      final directory = Directory(folderPath);
-      if (await directory.exists()) {
-        final files = directory.listSync(recursive: false);
-        for (final file in files) {
-          if (file is File && file.path.endsWith('.mp3')) {
-            await file.delete();
-          }
-        }
-        debugPrint('Audio files deleted successfully');
-      } else {
-        debugPrint('Folder does not exist');
-      }
-    } catch (e) {
-      debugPrint('Error deleting audio files: $e');
-    }
   }
 
   Future<List<T>> progressBarByFutures<T>(List<Future<T>> futures,

@@ -2,12 +2,12 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mp3downloader/downloader/data/cache.dart';
+import 'package:mp3downloader/downloader/cache.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-import '../data/audio_player_manager.dart';
-import '../data/download_manager.dart';
+import '../audio/audio_player_manager.dart';
+import '../downloader/download_manager.dart';
 
 Color greenTouch = Vx.hexToColor('#788154');
 RxBool isDownloadPaused = false.obs;
@@ -34,10 +34,10 @@ class _HomeState extends State<Home> {
           Obx(
             () => downloadController.checIfdownloadCompelete.value
                 ? const PlayList().p16().h(context.percentHeight * 35)
-                : const DonwloaderView().p16().h(context.percentHeight * 27),
+                : const DonwloaderView().p16().h(context.percentHeight * 35),
           ),
 
-          const AudioPlayerView().p16().h(context.percentHeight * 35),
+          const AudioPlayerView().p16().h(context.percentHeight * 50),
           // const PlayList().p16().h(context.percentHeight * 35),
         ]),
       ),
@@ -126,11 +126,11 @@ class _DonwloaderViewState extends State<DonwloaderView> {
                         icon: const Icon(Icons.play_arrow)),
                 IconButton(
                     onPressed: () {
-                      downloadController.reasumeDownload();
+                      downloadController.cancelDownload();
                     },
                     icon: const Icon(Icons.cancel))
               ],
-            ).pSymmetric(h: 16, v: 12),
+            )
           ],
           crossAlignment: CrossAxisAlignment.center,
         ),
@@ -163,15 +163,11 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
                       fit: BoxFit.cover))
                   .rounded
                   .make(),
-              Column(
-                children: [
-                  Obx(
-                    () => Text(playController.currentAudioTitle.value)
-                        .text
-                        .semiBold
-                        .make(),
-                  ),
-                ],
+              Obx(
+                () => Text(playController.currentAudioTitle.value)
+                    .text
+                    .semiBold
+                    .make(),
               ).pSymmetric(h: 16, v: 12),
             ],
           ),
@@ -187,19 +183,22 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
               onSeek: (value) => playController.seek(value),
             ).p16(),
           ),
-          HStack(
-            [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               IconButton(
                   onPressed: () {
-                    playController.onRepeatButtonPressed();
+                    playController.backseek(Duration(
+                        seconds: playController.progress.value.inSeconds - 10));
                   },
-                  iconSize: 24,
-                  icon: const Icon(Icons.repeat)),
+                  iconSize: 26,
+                  icon: const Icon(Icons.replay_10)),
               IconButton(
                   onPressed: () {
                     playController.playPrevious();
                   },
-                  iconSize: 24,
+                  iconSize: 26,
                   icon: const Icon(Icons.skip_previous)),
               Obx(
                 () => isPaused.value
@@ -210,7 +209,7 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
                             isPaused.value = false;
                           });
                         },
-                        iconSize: 24,
+                        iconSize: 26,
                         icon: const Icon(Icons.pause))
                     : IconButton(
                         onPressed: () {
@@ -219,14 +218,14 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
                             isPaused.value = true;
                           });
                         },
-                        iconSize: 24,
+                        iconSize: 26,
                         icon: const Icon(Icons.play_arrow)),
               ),
               IconButton(
                   onPressed: () {
                     playController.playNext();
                   },
-                  iconSize: 24,
+                  iconSize: 26,
                   icon: const Icon(Icons.skip_next)),
               IconButton(
                   onPressed: () {
@@ -234,16 +233,16 @@ class _AudioPlayerViewState extends State<AudioPlayerView> {
                         seconds:
                             (playController.progress.value.inSeconds + 10)));
                   },
-                  iconSize: 24,
+                  iconSize: 26,
                   icon: const Icon(Icons.forward_10)),
               IconButton(
                   onPressed: () {
-                    playController.isShuffleModeEnabled.value = true;
+                    playController.playBack();
                   },
                   iconSize: 24,
-                  icon: const Icon(Icons.shuffle)),
+                  icon: const Icon(Icons.speed_sharp)),
             ],
-          ).p24(),
+          )
         ],
       ),
     ).wFull(context);
@@ -261,7 +260,8 @@ class _PlayListState extends State<PlayList> {
   @override
   Widget build(BuildContext context) {
     return RoundedBox(
-      child: ListView.builder(
+      child: Stack(alignment: Alignment.topRight, children: [
+        ListView.builder(
           itemCount: playController.playListTitle.length - 1,
           shrinkWrap: true,
           scrollDirection: Axis.vertical,
@@ -280,7 +280,36 @@ class _PlayListState extends State<PlayList> {
                   child: Text(playController.playListTitle[index].toString())),
               leading: const FlutterLogo(),
             );
-          }),
+          },
+        ),
+        IconButton(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                        title: const Text('Delete All'),
+                        content: const Text(
+                            'Are you sure you want to delete all files?'),
+                        actions: [
+                          TextButton(
+                              onPressed: () {
+                                playController.deleteAudioFiles();
+                                Navigator.pop(context);
+                              },
+                              child: const Text('Yes')),
+                          TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const Text('No'))
+                        ],
+                      ));
+            },
+            icon: const Icon(
+              Icons.delete,
+              color: Colors.red,
+            )),
+      ]),
     );
   }
 }
